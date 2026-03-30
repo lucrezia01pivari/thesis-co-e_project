@@ -1,0 +1,461 @@
+---
+title: "QC - Campioni Trattati"
+format: html
+editor: visual
+---
+
+## Setup
+
+```{r setup, message=FALSE, warning=FALSE}
+library(Seurat)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+
+### Configurazione dei percorsi
+
+Modifica i percorsi qui sotto in base alla tua struttura di directory locale.
+
+```{r paths}
+# --- CONFIGURAZIONE PERCORSI ---
+# Modifica questi percorsi prima di eseguire il notebook
+
+base_input_dir <- "data"           # cartella radice dei dati di input
+output_dir     <- "output/rds"     # cartella per i file .rds in output
+img_dir        <- "immagini/Trattati"  # cartella per le immagini
+
+file_path1 <- file.path(base_input_dir, "RT01", "count", "sample_filtered_feature_bc_matrix")
+file_path2 <- file.path(base_input_dir, "RT02", "count", "sample_filtered_feature_bc_matrix")
+file_path3 <- file.path(base_input_dir, "RT03", "count", "sample_filtered_feature_bc_matrix")
+
+# Crea le cartelle di output se non esistono
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(img_dir,    recursive = TRUE, showWarnings = FALSE)
+```
+
+------------------------------------------------------------------------
+
+## Note sui parametri QC
+
+-   **nFeature_RNA**: numero di geni distinti rilevati per cellula durante il sequenziamento.
+-   **nCount_RNA**: numero totale di trascritti RNA sequenziati per cellula.
+-   **percent.mt**: percentuale di geni mitocondriali rilevata per cellula (valori alti indicano possibile danno cellulare).
+
+------------------------------------------------------------------------
+
+## Campione T01
+
+```{r load-T01}
+expression_matrix_T1 <- Read10X(data.dir = file_path1)
+expression_matrix_T1[1:10, 1:3]
+```
+
+### Creazione oggetto Seurat
+
+```{r seurat-T01}
+seurat_T01 <- CreateSeuratObject(
+  counts       = expression_matrix_T1,
+  min.cells    = 3,
+  min.features = 200,
+  project      = "T01"
+)
+
+seurat_T01
+dim(seurat_T01)
+head(colnames(seurat_T01))
+head(rownames(seurat_T01))
+```
+
+### QC pre-filtraggio
+
+```{r qc-pref-T01}
+seurat_T01[["percent.mt"]] <- PercentageFeatureSet(seurat_T01, pattern = "^MT-")
+
+png(filename = file.path(img_dir, "T01_QC_pref.png"))
+VlnPlot(seurat_T01, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+
+FeatureScatter(seurat_T01, feature1 = "nCount_RNA", feature2 = "percent.mt") + NoLegend() +
+  FeatureScatter(seurat_T01, feature1 = "nCount_RNA", feature2 = "nFeature_RNA") + NoLegend()
+```
+
+### Statistiche descrittive pre-filtraggio — T01
+
+```{r stats-pref-T01}
+summary_T01 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_T01$nFeature_RNA), mean(seurat_T01$nCount_RNA), mean(seurat_T01$percent.mt)),
+  SD     = c(sd(seurat_T01$nFeature_RNA),   sd(seurat_T01$nCount_RNA),   sd(seurat_T01$percent.mt))
+)
+print(summary_T01)
+```
+
+### Filtraggio delle cellule di bassa qualità
+
+```{r filter-T01}
+seurat_fltr_T01 <- subset(
+  seurat_T01,
+  subset = nFeature_RNA >  150 &
+           nFeature_RNA < 1500 &
+           percent.mt   <   25
+)
+
+png(filename = file.path(img_dir, "T01_QC_postf.png"))
+VlnPlot(seurat_fltr_T01, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+
+saveRDS(seurat_fltr_T01, file = file.path(output_dir, "Trattati_seurat_fltr_T01.rds"))
+```
+
+### Statistiche descrittive post-filtraggio — T01
+
+```{r stats-postf-T01}
+summary_fltr_T01 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_fltr_T01$nFeature_RNA), mean(seurat_fltr_T01$nCount_RNA), mean(seurat_fltr_T01$percent.mt)),
+  SD     = c(sd(seurat_fltr_T01$nFeature_RNA),   sd(seurat_fltr_T01$nCount_RNA),   sd(seurat_fltr_T01$percent.mt))
+)
+print(summary_fltr_T01)
+```
+
+------------------------------------------------------------------------
+
+## Campione T02
+
+```{r load-T02}
+expression_matrix_T2 <- Read10X(data.dir = file_path2)
+expression_matrix_T2[1:10, 1:3]
+```
+
+### Creazione oggetto Seurat
+
+```{r seurat-T02}
+seurat_T02 <- CreateSeuratObject(
+  counts       = expression_matrix_T2,
+  min.cells    = 3,
+  min.features = 200,
+  project      = "T02"
+)
+
+seurat_T02
+dim(seurat_T02)
+head(colnames(seurat_T02))
+head(rownames(seurat_T02))
+```
+
+### QC pre-filtraggio
+
+```{r qc-pref-T02}
+seurat_T02[["percent.mt"]] <- PercentageFeatureSet(seurat_T02, pattern = "^MT-")
+
+png(filename = file.path(img_dir, "T02_QC_pref.png"))
+VlnPlot(seurat_T02, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+
+FeatureScatter(seurat_T02, feature1 = "nCount_RNA", feature2 = "percent.mt") + NoLegend() +
+  FeatureScatter(seurat_T02, feature1 = "nCount_RNA", feature2 = "nFeature_RNA") + NoLegend()
+```
+
+### Statistiche descrittive pre-filtraggio — T02
+
+```{r stats-pref-T02}
+summary_T02 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_T02$nFeature_RNA), mean(seurat_T02$nCount_RNA), mean(seurat_T02$percent.mt)),
+  SD     = c(sd(seurat_T02$nFeature_RNA),   sd(seurat_T02$nCount_RNA),   sd(seurat_T02$percent.mt))
+)
+print(summary_T02)
+```
+
+### Filtraggio delle cellule di bassa qualità
+
+```{r filter-T02}
+seurat_fltr_T02 <- subset(
+  seurat_T02,
+  subset = nFeature_RNA >  100 &
+           nFeature_RNA < 2000 &
+           percent.mt   <   30
+)
+
+png(filename = file.path(img_dir, "T02_QC_postf.png"))
+VlnPlot(seurat_fltr_T02, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+
+saveRDS(seurat_fltr_T02, file = file.path(output_dir, "Trattati_seurat_fltr_T02.rds"))
+```
+
+### Statistiche descrittive post-filtraggio — T02
+
+```{r stats-postf-T02}
+summary_fltr_T02 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_fltr_T02$nFeature_RNA), mean(seurat_fltr_T02$nCount_RNA), mean(seurat_fltr_T02$percent.mt)),
+  SD     = c(sd(seurat_fltr_T02$nFeature_RNA),   sd(seurat_fltr_T02$nCount_RNA),   sd(seurat_fltr_T02$percent.mt))
+)
+print(summary_fltr_T02)
+```
+
+------------------------------------------------------------------------
+
+## Campione T03
+
+```{r load-T03}
+expression_matrix_T3 <- Read10X(data.dir = file_path3)
+expression_matrix_T3[1:10, 1:3]
+```
+
+### Creazione oggetto Seurat
+
+```{r seurat-T03}
+seurat_T03 <- CreateSeuratObject(
+  counts       = expression_matrix_T3,
+  min.cells    = 3,
+  min.features = 50,
+  project      = "T03"
+)
+
+seurat_T03
+dim(seurat_T03)
+head(colnames(seurat_T03))
+head(rownames(seurat_T03))
+```
+
+### QC pre-filtraggio
+
+```{r qc-pref-T03}
+seurat_T03[["percent.mt"]] <- PercentageFeatureSet(seurat_T03, pattern = "^MT-")
+
+png(filename = file.path(img_dir, "T03_QC_pref.png"))
+VlnPlot(seurat_T03, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+
+FeatureScatter(seurat_T03, feature1 = "nCount_RNA", feature2 = "percent.mt") + NoLegend() +
+  FeatureScatter(seurat_T03, feature1 = "nCount_RNA", feature2 = "nFeature_RNA") + NoLegend()
+```
+
+### Statistiche descrittive pre-filtraggio — T03
+
+```{r stats-pref-T03}
+summary_T03 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_T03$nFeature_RNA), mean(seurat_T03$nCount_RNA), mean(seurat_T03$percent.mt)),
+  SD     = c(sd(seurat_T03$nFeature_RNA),   sd(seurat_T03$nCount_RNA),   sd(seurat_T03$percent.mt))
+)
+print(summary_T03)
+```
+
+### Filtraggio delle cellule di bassa qualità
+
+```{r filter-T03}
+seurat_fltr_T03 <- subset(
+  seurat_T03,
+  subset = nFeature_RNA >   50 &
+           nFeature_RNA < 1000 &
+           percent.mt   <   25
+)
+
+png(filename = file.path(img_dir, "T03_QC_postf.png"))
+VlnPlot(seurat_fltr_T03, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, cols = "#9A0135")
+dev.off()
+```
+
+### Statistiche descrittive post-filtraggio — T03
+
+```{r stats-postf-T03}
+summary_fltr_T03 <- data.frame(
+  Metric = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+  Mean   = c(mean(seurat_fltr_T03$nFeature_RNA), mean(seurat_fltr_T03$nCount_RNA), mean(seurat_fltr_T03$percent.mt)),
+  SD     = c(sd(seurat_fltr_T03$nFeature_RNA),   sd(seurat_fltr_T03$nCount_RNA),   sd(seurat_fltr_T03$percent.mt))
+)
+print(summary_fltr_T03)
+```
+
+------------------------------------------------------------------------
+
+## Combinazione degli oggetti Seurat
+
+```{r merge-treated}
+serobj_combined_T <- merge(
+  x            = seurat_fltr_T03,
+  y            = c(seurat_fltr_T01, seurat_fltr_T02),
+  add.cell.ids = c("T01", "T02", "T03"),
+  project      = "merged_trt"
+)
+
+saveRDS(serobj_combined_T, file = file.path(output_dir, "Trattati_seurat_fltr_combined_preCC.rds"))
+
+serobj_combined_T
+head(Cells(serobj_combined_T))
+table(serobj_combined_T$orig.ident)
+```
+
+------------------------------------------------------------------------
+
+## Cell Cycle Classification
+
+I marcatori del ciclo cellulare (Tirosh et al., 2015) sono precaricati in Seurat e suddivisi in geni di fase G2/M e fase S.
+
+```{r cell-cycle-scoring}
+s.genes   <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+
+serobj_combined_T <- NormalizeData(serobj_combined_T)
+serobj_combined_T <- ScaleData(serobj_combined_T, features = rownames(serobj_combined_T))
+serobj_combined_T <- CellCycleScoring(
+  serobj_combined_T,
+  s.features   = s.genes,
+  g2m.features = g2m.genes,
+  set.ident    = TRUE
+)
+
+head(serobj_combined_T[[]])
+```
+
+### PCA sui geni del ciclo cellulare
+
+La PCA sui geni del ciclo cellulare mostra come le cellule si separino per fase.
+
+```{r pca-cc}
+serobj_combined_T <- RunPCA(serobj_combined_T, features = c(s.genes, g2m.genes))
+
+png(filename = file.path(img_dir, "trt_cc_phase.png"))
+plot_cc <- DimPlot(
+  serobj_combined_T,
+  cols = c("G1" = "#619CFF", "S" = "#F8766D", "G2M" = "#00BB37")
+) +
+  theme(
+    axis.title   = element_text(size = 18),
+    legend.text  = element_text(size = 18)
+  ) +
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+print(plot_cc)
+dev.off()
+```
+
+### Distribuzione dei campioni nella PCA (ciclo cellulare)
+
+```{r pca-cc-by-sample}
+sample_colors_T <- c(
+  "T01" = "#FB8B24",  # arancione
+  "T02" = "#9A0135",  # bordeaux
+  "T03" = "#0F4C4C"   # verde scuro
+)
+
+png(filename = file.path(img_dir, "trt_cc_distribution.png"))
+print(
+  DimPlot(
+    serobj_combined_T,
+    reduction = "pca",
+    group.by  = "orig.ident",
+    cols      = sample_colors_T
+  ) +
+    scale_color_manual(values = sample_colors_T)
+)
+dev.off()
+```
+
+### PCA su tutti i geni
+
+La PCA su tutti i geni (prime 50 componenti) permette di valutare la separazione tra replicati. Nota: se il replicato 3 si separa dagli altri, potrebbe indicare variabilità tecnica o biologica da valutare.
+
+```{r pca-allgene}
+serobj_combined_allgene_T <- RunPCA(
+  serobj_combined_T,
+  npcs     = 50,
+  features = rownames(serobj_combined_T)
+)
+
+plot_all <- DimPlot(serobj_combined_allgene_T) +
+  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) +
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+print(plot_all)
+
+png(filename = file.path(img_dir, "trt_all_gene_distribution.png"))
+print(
+  DimPlot(
+    serobj_combined_allgene_T,
+    reduction = "pca",
+    group.by  = "orig.ident",
+    cols      = sample_colors_T
+  ) +
+    scale_color_manual(values = sample_colors_T)
+)
+dev.off()
+```
+
+------------------------------------------------------------------------
+
+## Distribuzione delle fasi del ciclo cellulare
+
+```{r phase-table}
+tabella_counts <- as.data.frame(
+  table(
+    sample = serobj_combined_T$orig.ident,
+    phase  = serobj_combined_T$Phase
+  )
+)
+
+tabella_counts$Freq <- as.numeric(tabella_counts$Freq)
+
+tabella_counts <- tabella_counts %>%
+  group_by(sample) %>%
+  mutate(percent = round(100 * Freq / sum(Freq), 2))
+
+print(tabella_counts)
+```
+
+```{r phase-barplot}
+phase_colors <- c("G1" = "#619CFF", "S" = "#F8766D", "G2M" = "#00BB37")
+
+tabella_counts <- tabella_counts %>%
+  mutate(
+    percent_prop = percent / 100,
+    phase        = factor(phase, levels = c("G1", "S", "G2M"))
+  )
+
+png(filename = file.path(img_dir, "istogramma-fasi_T.png"))
+print(
+  ggplot(tabella_counts, aes(x = sample, y = percent_prop, fill = phase)) +
+    geom_col(width = 0.6) +
+    scale_fill_manual(values = phase_colors) +
+    theme_minimal(base_size = 14)
+)
+dev.off()
+```
+
+------------------------------------------------------------------------
+
+## Espressione di geni di interesse
+
+```{r genes-violin}
+genes_of_interest <- c("TP53", "CDKN1A", "FOXM1", "AKT1", "FOXO3", "CCNB1")
+
+# Verifica presenza dei geni nell'oggetto Seurat
+genes_of_interest %in% rownames(serobj_combined_T)
+
+png(file.path(img_dir, "VlnPlot_geni_T01_T02_T03.png"), width = 1800, height = 600)
+print(
+  VlnPlot(
+    serobj_combined_T,
+    features  = genes_of_interest,
+    group.by  = "orig.ident",
+    pt.size   = 0,
+    ncol      = length(genes_of_interest)
+  ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      text        = element_text(size = 14)
+    )
+)
+dev.off()
+```
+
+```{r genes-dotplot}
+DotPlot(
+  serobj_combined_T,
+  features = genes_of_interest,
+  split.by = "orig.ident",
+  cols     = c("lightgrey", "#D4A017", "#5A2A6A", "#2F2F2F")
+) + RotatedAxis()
+```
